@@ -69,7 +69,7 @@ table(pred, valid2$classe)
 ```
 
 The correctly identified classes percentage in validation dataset is:
-```{r}
+```{r, results=TRUE}
 sum(diag(table(pred, valid2$classe))) * 100 / nrow(valid2)
 ```
 
