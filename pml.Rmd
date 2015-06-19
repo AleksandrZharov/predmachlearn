@@ -1,0 +1,84 @@
+# pml data analysis
+# Author: Alexander Zharov
+
+
+## Reading data:
+
+```{r}
+training <- read.csv("pml-training.csv")
+testing <- read.csv("pml-testing.csv")
+```
+
+## Cleaning data:
+
+Now let's make a summary of data. Output will be omitted for the sake of brevity.
+
+There are a lot of columns in a dataset, consisting of a lot of NA values. Let's exclude them from dataset. New dataset will contain 93 of 160 original dataset columns.
+
+```{r, results=FALSE}
+train_summary <- summary(training)
+columns <- grepl("NA's", train_summary[7, ])
+train <- training[ , !columns]
+test <- testing[ , !columns]
+```
+
+The same way let's exclude column which mostly doesn't contain values. New dataset will contain 59 of 160 original dataset columns.
+
+```{r, results=FALSE}
+train_summary <- summary(train)
+columns <- grepl(":19216", train_summary[1, ])
+train <- train[ , !columns]
+test <- test[ , !columns]
+```
+
+Now let's exclude variables that evidently can't impact doing exersize. First, this is the number of observation.
+Dataset is created artificially, so it doesn't necessarily have time pattern of real world observations. So, time variables are also excluded.
+
+```{r}
+train <- train[ , -1 * c(1, 3, 4, 5, 6)]
+test <- test[ , -1 * c(1, 3, 4, 5, 6, 59)]
+```
+
+## Splitting data:
+
+Let's divide training data into 2 parts - train and valid data.
+
+```{r}
+library(caret)
+set.seed(1234)
+inTrain <- createDataPartition(y=train$classe, p=0.75, list=FALSE)
+train2 <- train[inTrain, ]
+valid2 <- train[-inTrain, ]
+```
+
+## Fitting model:
+
+Now fit model with bagging on train dataset...
+
+```{r, results=FALSE, warning=FALSE}
+library(ipred)
+modFit <- train(classe ~ ., data = train2, method = "treebag")
+```
+
+... and test its accuracy on validation dataset
+
+```{r}
+pred <- predict(modFit, valid2)
+valid2$predRight <- pred == valid2$classe
+table(pred, valid2$classe)
+```
+
+The correctly identified classes percentage in validation dataset is:
+```{r}
+sum(diag(table(pred, valid2$classe))) * 100 / nrow(valid2)
+```
+
+Not bad!
+
+## Apply to test:
+
+Let's apply our model to test data 20 observations for the 2nd project:
+```{r}
+answers <- predict(modFit, test)
+answers
+```
